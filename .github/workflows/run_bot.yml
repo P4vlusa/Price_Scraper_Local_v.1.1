@@ -2,7 +2,7 @@ name: Auto Price Check Dealers
 
 on:
   schedule:
-    - cron: '0 1 * * *' # Chạy lúc 8:00 sáng VN
+    - cron: '0 2 * * *' # Chạy lúc 9:00 sáng VN
   workflow_dispatch:      # Nút chạy thủ công
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
 
     - name: Install Libraries
       run: pip install -r requirements.txt
