@@ -128,4 +128,86 @@ def get_price_selenium(product):
     return result
 
 def main():
-    # --- XỬ LÝ THAM SỐ
+    # --- XỬ LÝ THAM SỐ ĐẦU VÀO (Tránh lỗi Index Out of Range) ---
+    if len(sys.argv) > 1:
+        config_path = sys.argv[1]
+    else:
+        # Mặc định file để test trên máy cá nhân
+        config_path = 'configs/tgdd.json' # Đảm bảo bạn có file này để test
+        print(f"⚠️ Không có tham số. Đang chạy chế độ Test với file: {config_path}")
+
+    # Kiểm tra file config tồn tại không
+    if not os.path.exists(config_path):
+        print(f"⛔ File cấu hình không tồn tại: {config_path}")
+        return
+
+    print(f"\n🚀 BẮT ĐẦU QUÉT: {config_path}")
+    
+    # 1. Đọc dữ liệu đầu vào
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            products = json.load(f)
+    except Exception as e:
+        print(f"⛔ Lỗi đọc file JSON: {e}")
+        return
+
+    results = []
+    
+    # 2. Chạy đa luồng
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # Submit các công việc vào luồng
+        futures = [executor.submit(get_price_selenium, p) for p in products]
+        
+        # Nhận kết quả khi hoàn thành
+        for future in concurrent.futures.as_completed(futures):
+            data = future.result()
+            if data:
+                results.append(data)
+
+    # 3. Tổng kết và Ghi file
+    if not results:
+        print("\n⚠️ QUÉT XONG NHƯNG KHÔNG CÓ DỮ LIỆU (Kiểm tra lại Selector hoặc IP).")
+        return
+
+    print(f"\n✅ Thu được {len(results)} kết quả. Đang lưu file...")
+    
+    # Tạo tên file CSV: Report_tgdd.csv
+    base_name = os.path.basename(config_path).replace('.json', '.csv')
+    csv_filename = f"Report_{base_name}"
+    
+    keys = ["Time", "Product", "Price", "Source", "URL"]
+    
+    try:
+        with open(csv_filename, 'w', newline='', encoding='utf-8-sig') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(results)
+        print(f"💾 Đã lưu file CSV: {csv_filename}")
+    except Exception as e:
+        print(f"❌ Lỗi ghi file CSV: {e}")
+        return
+
+    # 4. Upload lên Google Drive
+    print("☁️ Đang upload lên Google Drive...")
+    service = get_drive_service()
+    if service:
+        try:
+            folder_id = create_daily_folder(service)
+            
+            file_metadata = {
+                'name': csv_filename,
+                'parents': [folder_id]
+            }
+            media = MediaFileUpload(csv_filename, mimetype='text/csv')
+            
+            file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+            print(f"🎉 THÀNH CÔNG! File ID: {file.get('id')}")
+            
+            # (Tùy chọn) Xóa file CSV trên máy sau khi up xong để sạch sẽ
+            # os.remove(csv_filename) 
+            
+        except Exception as e:
+            print(f"❌ Lỗi upload Drive: {e}")
+
+if __name__ == "__main__":
+    main()
