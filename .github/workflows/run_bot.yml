@@ -1,12 +1,13 @@
-name: Run Laptop Price Tracker
+name: Run Laptop Price Tracker (Cloud)
 on:
   schedule:
-    - cron: '0 2 * * *' # Chạy hàng ngày lúc 2h UTC (9h sáng VN)
-  workflow_dispatch: # Nút chạy tay
+    - cron: '0 2 * * *' # Chạy lúc 00:00 UTC (9h sáng VN)
+  workflow_dispatch:    # Nút bấm chạy tay
 
 jobs:
-  scrape_and_upload:
-    runs-on: ubuntu-latest
+  scrape_job:
+    runs-on: ubuntu-latest  # QUAN TRỌNG: Chạy trên Server Ubuntu của GitHub
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -16,13 +17,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      # CÀI ĐẦY ĐỦ THƯ VIỆN CẦN THIẾT
       - name: Install Libraries
         run: |
           pip install selenium webdriver-manager gspread oauth2client google-auth
 
       - name: Create Service Account File
+        # Tạo file json từ Secret
         run: echo '${{ secrets.GDRIVE_CREDS }}' > service_account.json
 
-      - name: Run Main Script
+      - name: Run Script
         run: python main.py
