@@ -34,7 +34,7 @@ MAX_WORKERS = 4
 # --- CẤU HÌNH ĐƯỜNG DẪN HYBRID ---
 
 # 1. Đường dẫn Key Cố Định (Lấy từ ổ C cho an toàn, không lo lỗi GitHub)
-FIXED_KEY_PATH = r'C:\AutoPrice\service_account.json'
+FIXED_KEY_PATH = r'C:\Users\Pavlusa\OneDrive\Work\Python\Google_Token\service_account.json'
 
 # 2. Đường dẫn Config (Lấy từ thư mục code do GitHub tải về)
 # Lý do: Để bạn có thể cập nhật/thêm bớt link sản phẩm từ xa thông qua GitHub
