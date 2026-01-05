@@ -25,7 +25,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # --- CẤU HÌNH ---
 FOLDER_CONFIG = 'configs_local'
 MAX_WORKERS = 10  # Số luồng chạy song song
-SERVICE_ACCOUNT_FILE = 'C:\01. Python\Google_Token\service_account.json'
+SERVICE_ACCOUNT_FILE = 'C:\\01. Python\\Google_Token\\service_account.json'
 
 # --- QUAN TRỌNG: THAY ID FILE SHEET CỦA BẠN VÀO ĐÂY ---
 # (Lấy ID từ file Master Sheet bạn đã tạo và share quyền Editor)
