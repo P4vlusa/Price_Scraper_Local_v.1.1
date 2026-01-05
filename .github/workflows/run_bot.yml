@@ -1,29 +1,35 @@
-name: Run Laptop Price Tracker (Cloud)
+name: Self-Hosted Price Tracker
+
 on:
   schedule:
-    - cron: '0 2 * * *' # Chạy lúc 00:00 UTC (9h sáng VN)
+    - cron: '0 4 * * *' # 10h sáng mỗi ngày
   workflow_dispatch:    # Nút bấm chạy tay
 
 jobs:
   scrape_job:
-    runs-on: ubuntu-latest  # QUAN TRỌNG: Chạy trên Server Ubuntu của GitHub
+    runs-on: self-hosted # Chạy trên máy của bạn
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        # Bước này sẽ tải toàn bộ code + thư mục configs về máy bạn
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Libraries
+      - name: Install Python & Libraries
         run: |
-          pip install selenium webdriver-manager gspread oauth2client google-auth
+          # Cài thư viện (Nếu máy bạn chưa có thì nó sẽ cài)
+          python -m pip install --upgrade pip
+          python -m pip install selenium webdriver-manager gspread oauth2client
 
-      - name: Create Service Account File
-        # Tạo file json từ Secret
-        run: echo '${{ secrets.GDRIVE_CREDS }}' > service_account.json
+      - name: Create Service Account File (PowerShell Safe)
+        shell: powershell
+        run: |
+          # Lấy nội dung từ Secret và ghi ra file service_account.json
+          # Dùng cách này để tránh lỗi ký tự lạ trên Windows
+          $content = '${{ secrets.GDRIVE_CREDS }}'
+          if (-not $content) { Write-Error "SECRET IS EMPTY!" }
+          [System.IO.File]::WriteAllText("service_account.json", $content, [System.Text.Encoding]::UTF8)
+          Write-Host "✅ File service_account.json created successfully."
 
-      - name: Run Script
-        run: python main.py
+      - name: Run Main Script
+        # Chạy file main_local.py
+        run: python main_local.py
