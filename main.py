@@ -40,72 +40,78 @@ def get_google_sheet_client():
         return None
 
 def upload_to_sheet(client, dealer_name, data_rows):
-    """Đẩy dữ liệu lên 1 Tab mới trong Sheet"""
+    """
+    Chế độ tích lũy: 
+    - Nếu chưa có Tab -> Tạo mới + Ghi tiêu đề.
+    - Nếu có rồi -> Nối tiếp dữ liệu (Append).
+    """
     if not client or not data_rows: return
 
     try:
-        # Mở file Master
         sh = client.open_by_key(MASTER_SHEET_ID)
         
-        # Tạo tên Tab ngắn gọn: TênĐạiLý_Ngày (Ví dụ: TGDD_29Dec)
-        # Lưu ý: Tên Tab không được quá dài hoặc trùng lặp
-        short_date = datetime.now().strftime("%d%b")
-        tab_name = f"{dealer_name[:10]}_{short_date}"
+        # Đặt tên Tab theo tên đại lý (Viết hoa, thay dấu cách bằng gạch dưới)
+        tab_name = dealer_name.strip().replace(" ", "_").upper()
         
-        # Kiểm tra xem Tab có chưa, nếu có rồi thì xóa đi tạo lại (để cập nhật mới nhất)
+        worksheet = None
+        is_new_sheet = False
+
+        # 1. Kiểm tra Tab đã tồn tại chưa
         try:
             worksheet = sh.worksheet(tab_name)
-            sh.del_worksheet(worksheet)
-            print(f"   ⚠️ Đã xóa Tab cũ '{tab_name}' để ghi mới.")
         except:
-            pass # Chưa có thì thôi
+            # Nếu chưa có thì tạo mới
+            print(f"   ✨ Tab '{tab_name}' chưa có. Đang tạo mới...")
+            # Tạo dư dả hàng để dùng lâu dài
+            worksheet = sh.add_worksheet(title=tab_name, rows=2000, cols=10)
+            is_new_sheet = True
 
-        # Tạo Tab mới
-        print(f"   Cloud: Đang tạo Tab '{tab_name}'...")
-        rows = len(data_rows) + 5
-        worksheet = sh.add_worksheet(title=tab_name, rows=rows, cols=10)
+        # 2. Chuẩn bị dữ liệu
+        current_date_str = datetime.now().strftime("%d/%m/%Y")
         
-        # Ghi dữ liệu (Dùng update cho nhanh)
-        # Header
-        header = ["Date", "Time", "Dealer", "Product", "Price", "Status", "URL"]
-        
-        # Chuẩn bị mảng dữ liệu để đẩy lên 1 lần (Batch update)
-        all_values = [header]
+        # Nếu là sheet mới tinh thì thêm dòng tiêu đề
+        if is_new_sheet:
+            header = ["Date", "Time", "Dealer", "Product", "Price", "Status", "URL"]
+            worksheet.append_row(header)
+
+        # Chuẩn bị danh sách các dòng dữ liệu cần thêm
+        rows_to_append = []
         for item in data_rows:
             row = [
-                current_date_str,   # Cột 1: Ngày
-                item['Time'],       # Cột 2: Giờ
-                dealer_name,        # Cột 3: Tên đại lý
-                item['Product'],    # Cột 4: Tên SP
-                item['Price'],      # Cột 5: Giá
-                item['Status'],     # Cột 6: Trạng thái
-                item['URL']         # Cột 7: Link
+                current_date_str,   # Ngày quét
+                item['Time'],       # Giờ quét
+                dealer_name,        # Tên đại lý
+                item['Product'],    # Tên sản phẩm
+                item['Price'],      # Giá tìm được
+                item['Status'],     # Trạng thái (OK/Fail)
+                item['URL']         # Link gốc
             ]
-            all_values.append(row)
+            rows_to_append.append(row)
             
-        # Ghi toàn bộ (bắt đầu từ ô A1)
-        worksheet.update('A1', all_values)
-        print(f"   ✅ Đã upload thành công {len(data_rows)} dòng lên Sheet!")
+        # 3. Ghi nối đuôi vào cuối danh sách
+        if rows_to_append:
+            worksheet.append_rows(rows_to_append)
+            print(f"   ✅ Đã nối thêm {len(rows_to_append)} dòng vào tab '{tab_name}'.")
         
     except Exception as e:
         print(f"   ❌ Lỗi Upload Sheet: {e}")
 
 def get_driver():
-    """Cấu hình Selenium (Tự động nhận diện GitHub/Local)"""
+    """Cấu hình Selenium"""
     opts = Options()
-    opts.add_argument("--headless") 
+    # opts.add_argument("--headless") # Bỏ comment nếu muốn chạy ẩn
     opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-dev-shm-usage")
-    opts.add_argument("--disable-blink-features=AutomationControlled")
+    opts.add_argument("--disable-blink-features=AutomationControlled") 
+    opts.add_argument("--window-size=1280,720")
+    # Fake User Agent để đỡ bị chặn
     opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    opts.add_argument("--log-level=3") # Tắt log rác
 
-    if os.environ.get('GITHUB_ACTIONS') == 'true':
+    try:
+        return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
+    except Exception as e:
+        print(f"⚠️ Lỗi khởi tạo Driver: {e}")
         return webdriver.Chrome(options=opts)
-    else:
-        try:
-            return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
-        except:
-            return webdriver.Chrome(options=opts)
 
 def scrape_product(product):
     """Hàm lấy giá 1 sản phẩm"""
@@ -203,4 +209,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
