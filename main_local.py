@@ -26,7 +26,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # --- THAY ID SHEET CỦA BẠN ---
 SPREADSHEET_ID = '1YqO4MVEzAz61jc_WCVSS00LpRlrDb5r0LnuzNi6BYUY'
-MASTER_SHEET_NAME = 'Local'
+MASTER_SHEET_NAME = 'Sheet2'
 
 # Số luồng chạy song song (Máy PC để 3-5 là đẹp)
 MAX_WORKERS = 4
