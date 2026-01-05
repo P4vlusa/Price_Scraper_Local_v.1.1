@@ -1,4 +1,4 @@
-name: Run Price Tracker (Local File)
+name: Daily Price Scraper (Local)
 
 on:
   schedule:
